@@ -1,0 +1,208 @@
+A. Create Database
+------------------
+hive> create database retail;
+
+B. Select Database
+------------------
+hive> use retail;
+
+C. Create table for storing transactional records
+-------------------------------------------------
+hive> create table txnrecords(txnno INT, txndate STRING, custno INT, amount DOUBLE, 
+category STRING, product STRING, city STRING, state STRING, spendby STRING)
+row format delimited
+fields terminated by ','
+stored as textfile;
+
+C. Create table for storing customer records
+-------------------------------------------------
+hive> create table customer(custno string, firstname string, lastname string, age int,profession string)
+row format delimited
+fields terminated by ','
+stored as textfile;
+
+D-1. Load the data from local file system into the table
+--------------------------------------------------------
+hive> LOAD DATA LOCAL INPATH '/home/training/txns1.txt' OVERWRITE INTO TABLE txnrecords;
+hive> LOAD DATA LOCAL INPATH '/home/training/custs' OVERWRITE INTO TABLE customer;
+
+D-2. Load the data from hdfs file system into the table
+--------------------------------------------------------
+hive> LOAD DATA INPATH '<hdfs path>/txns1.txt' OVERWRITE INTO TABLE txnrecords;
+hive> LOAD DATA INPATH '<hdfs path>/custs' OVERWRITE INTO TABLE customer;
+
+E. Describing metadata or schema of the table
+---------------------------------------------
+hive> describe txnrecords;
+
+txnno               	int                 	                    
+txndate             	string              	                    
+custno              	int                 	                    
+amount              	double              	                    
+category            	string              	                    
+product             	string              	                    
+city                	string              	                    
+state               	string              	                    
+spendby             	string  
+
+hive> describe customer;
+
+custno              	string              	                    
+firstname           	string              	                    
+lastname            	string              	                    
+age               	int                 	                    
+profession          	string   
+
+F. Counting no of records
+-------------------------
+hive> select count(*) from txnrecords;
+
+50000
+
+hive> select count(*) from customer;
+
+9999
+
+G. Counting total spending by category of products
+--------------------------------------------------
+hive> select category, sum(amount) as totalamt from txnrecords group by category order by totalamt desc;
+
+Outdoor Recreation	846678.6399999991
+Exercise & Fitness	766463.8700000007
+Team Sports		617461.3799999995
+Water Sports		531815.9700000014
+Games			374932.69999999943
+Gymnastics		327225.3399999993
+Winter Sports		321973.56000000006
+Outdoor Play Equipment	294728.27999999956
+Indoor Games		288506.0400000002
+Jumping			205842.66999999993
+Racquet Sports		166976.05999999965
+Combat Sports		164730.66999999995
+Air Sports		99316.89999999994
+Puzzles			61564.74999999998
+Dancing			42603.70999999998
+
+H. 10 customers
+--------------------
+hive> select custno, sum(amount) from txnrecords group by custno limit 10;
+
+4000000	637.22
+4000001	980.5099999999999
+4000002	112.33
+4000003	371.01
+4000004	672.54
+4000005	1080.4199999999998
+4000006	184.01
+4000007	719.66
+4000009	364.69
+4000010	53.6
+
+I. Top 10 customers  
+----------------------
+using WHERE clause
+
+hive> select c.custno, c.firstname, c.lastname, sum(t.amount) as totamt from customer c, txnrecords t where c.custno = t.custno group by c.custno, c.firstname, c.lastname order by totamt desc limit 10;
+
+4009485	Stuart	House	1973.3
+4006425	Joe	Burns	1732.09
+4000221	Glenda	Boswell	1671.4700000000003
+4003228	Elsie	Newton	1640.63
+4006606	Jackie	Lewis	1628.9399999999996
+4006467	Evelyn	Monroe	1605.9499999999998
+4004927	Joan	Lowry	1576.71
+4008321	Paul	Carey	1560.79
+4000815	Julie	Galloway1557.8200000000002
+4001051	Arlene	Higgins	1488.67
+
+using JOIN clause
+
+hive> select c.custno, c.firstname, c.lastname, sum(t.amount) as totamt from customer c Join txnrecords t on c.custno = t.custno group by c.custno, c.firstname, c.lastname order by totamt desc limit 10;
+
+4009485	Stuart	House	1973.3
+4006425	Joe	Burns	1732.09
+4000221	Glenda	Boswell	1671.4700000000003
+4003228	Elsie	Newton	1640.63
+4006606	Jackie	Lewis	1628.9399999999996
+4006467	Evelyn	Monroe	1605.9499999999998
+4004927	Joan	Lowry	1576.71
+4008321	Paul	Carey	1560.79
+4000815	Julie	Galloway1557.8200000000002
+4001051	Arlene	Higgins	1488.67
+
+J. Find sales based on age group
+---------------------------------
+hive> create table out1 (custno int,firstname string,age int,profession string,amount double,product string)
+row format delimited                                                                                  
+fields terminated by ',';   
+
+hive> insert overwrite table out1                                                                           
+select a.custno,a.firstname,a.age,a.profession,b.amount,b.product                                     
+from customer a JOIN txnrecords b ON a.custno = b.custno;     
+
+hive> select * from out1 limit 10;
+
+4007024	Cameron	59	Actor			40.33	Cardio Machine Accessories
+4006742	Gregory	36	Accountant		198.44	Weightlifting Gloves
+4009775	Ruby	44	Designer		5.58	Weightlifting Machine Accessories
+4002199	Keith	44	Police officer		198.19	Gymnastics Rings
+4002613	Hugh	43	Engineering technician	98.81	Field Hockey
+4007591	Jennifer54	Electrician		193.63	Camping & Backpacking & Hiking
+4002190	Sheryl	62	Designer		27.89	Jigsaw Puzzles
+4002964	Ken	67	Recreation and fitness worker	96.01	Sandboxes
+4007361	Terri	52	Loan officer		10.44	Snowmobiling
+4004798	Geoffrey65	Chemist			152.46	Bungee Jumping
+
+hive> create table out2 (custno int,firstname string,age int,profession string,amount double,product string, level string)
+row format delimited                                                                                  
+fields terminated by ',';   
+
+hive> insert overwrite table out2
+select * , case
+ when age<30 then 'low'
+ when age>=30 and age < 50 then 'middle'
+ when age>=50 then 'old' 
+ else 'others'
+end
+from out1;
+
+hive> select * from out2 limit 10; 
+
+4007024	Cameron	59	Actor		40.33	Cardio Machine Accessories		old
+4006742	Gregory	36	Accountant	198.44	Weightlifting Gloves			middle
+4009775	Ruby	44	Designer	5.58	Weightlifting Machine Accessories	middle
+4002199	Keith	44	Police officer	198.19	Gymnastics Rings			middle
+4002613	Hugh	43	Engineering technician	98.81	Field Hockey			middle
+4007591	Jennifer54	Electrician	193.63	Camping & Backpacking & Hiking		old
+4002190	Sheryl	62	Designer	27.89	Jigsaw Puzzles				old
+4002964	Ken	67	Recreation and fitness worker	96.01	Sandboxes		old
+4007361	Terri	52	Loan officer	10.44	Snowmobiling				old
+4004798	Geoffrey65	Chemist		152.46	Bungee Jumping				old
+
+hive> create table out3 (level string, amount double)                                                                                   
+row format delimited
+fields terminated by ',';
+
+hive> insert overwrite table out3  
+select level,sum(amount) from out2 group by level;
+
+hive> describe out3;
+
+level               	string              	                    
+amount              	double
+
+hive> select * from out3;
+
+low	725221.3399999988
+middle	1855861.669999996
+old	2529100.310000011
+
+K. Create a view in a retail database
+---------------------------------
+hive> CREATE VIEW age_45plus AS
+SELECT * FROM customer
+WHERE age>45;
+
+hive> select count(*) from age_45plus;
+
+5354
