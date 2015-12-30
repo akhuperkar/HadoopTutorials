@@ -1,0 +1,82 @@
+##### Examples of joins using sample datasets 'employee.txt' & 'mailid.txt' ######
+-------------------------------------------------------------------------------------
+
+A. Create Database
+------------------
+hive> create database employees;
+
+B. Select Database
+------------------
+hive> use employees;
+
+C. Create table for employee data
+---------------------------------
+hive> create table employee (name string, salary float,city string)
+row format delimited
+fields terminated by ',';
+
+D. Load data from local file into table
+---------------------------------------
+hive> load data local inpath '/home/hduser/Documents/Hadoop/Hive/emp.txt' into table employee;
+
+hive> select * from employee;
+
+swetha	250000.0	Chennai
+anamika	200000.0	Kanyakumari
+tarun	300000.0	Pondi
+anita	250000.0	Selam
+
+E. Create another table for mailids
+-----------------------------------
+hive> create table mailid (name string, email string)
+row format delimited
+fields terminated by ',';
+
+F. Load data from local file into table
+--------------------------------------- 
+hive> load data local inpath '/home/hduser/Documents/Hadoop/Hive/email.txt' into table mailid;
+
+hive> select * from mailid;
+
+swetha		swetha@gmail.com
+tarun		tarun@yahoo.in
+nagesh		nagesh@yahoo.com
+venkatesh	venki@gmail.com
+
+H. Implement joins
+------------------
+1. Inner join
+-------------
+hive>select a.name,a.city,a.salary,b.email from employee a join mailid b on a.name = b.name;
+
+swetha	Chennai	250000.0	swetha@gmail.com
+tarun	Pondi	300000.0	tarun@yahoo.in
+
+2. Left outer join
+-------------------
+hive> select a.name, a.salary, a.city, b.email from employee a left outer join mailid b on a.name = b.name;
+
+swetha	250000.0	Chennai		swetha@gmail.com
+anamika	200000.0	Kanyakumari	NULL
+tarun	300000.0	Pondi		tarun@yahoo.in
+anita	250000.0	Selam		NULL
+
+3. Right outer join
+-------------------
+hive> select a.name, a.salary, a.city, b.email from employee a right  outer join mailid b on a.name = b.name;
+
+swetha	250000.0	Chennai	swetha@gmail.com
+tarun	300000.0	Pondi	tarun@edureka.in
+NULL	NULL		NULL	nagesh@yahoo.com
+NULL	NULL		NULL	venki@gmail.com
+
+4. Full outer join
+------------------
+hive> select a.name, a.salary, a.city, b.email from employee a full outer join mailid b on a.name = b.name;
+
+anamika	200000.0	Kanyakumari	NULL
+anita	250000.0	Selam		NULL
+NULL	NULL		NULL		nagesh@yahoo.com
+swetha	250000.0	Chennai		swetha@gmail.com
+tarun	300000.0	Pondi		tarun@edureka.in
+NULL	NULL		NULL		venki@gmail.com
