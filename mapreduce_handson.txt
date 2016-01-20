@@ -1,0 +1,135 @@
+############# MapReduce Hands on #######
+
+mapr algorithm
+--------------
+std in ---> mapper ---> std out --> key\tval --> shuffle --> reducer --> std out --> in HDFS
+
+unix pseudo command
+-------------------
+cat input.txt | mapper | sort | reducer > output.txt
+
+bigdata@bigdata:~$ head -3 registration.log
+2015-01-08 00:00:01 registration 124 organic
+2015-01-08 00:00:02 registration 125 organic
+2015-01-08 00:00:02 payment 125 IN 99
+
+bigdata@bigdata:~$ wc registration.log
+ 100000  509103 4524379 registration.log
+
+bigdata@bigdata:~$ cat registration.log | grep payment | cut -d ' ' -f 5 | head
+ IN
+ US
+ FR
+ DE
+ NL
+ NL
+ US
+ IN
+ NL
+ IN
+
+bigdata@bigdata:~$ cat registration.log | grep payment | cut -d ' ' -f 5 | head | sort | uniq
+ DE
+ FR
+ IN
+ NL
+ US
+
+bigdata@bigdata:~$ cat registration.log | grep payment | cut -d ' ' -f 5 | sort | uniq -c
+    1814 DE
+     934 FR
+     859 HU
+    1858 IN
+    1804 NL
+    1834 US
+
+bigdata@bigdata:~$ hadoop hdfs -put registration.log /user/bigdata
+
+bigdata@bigdata:~$ hadoop fs -ls /user/bigdata
+Found 2 items
+-rw-r--r--   1 bigdata supergroup    1737911 2015-07-01 20:45 /user/bigdata/birdstrikes.csv
+-rw-r--r--   1 bigdata supergroup    4524379 2016-01-19 09:29 /user/bigdata/registration.log
+
+bigdata@bigdata:~$ locate streaming | grep jar
+/usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.0.jar
+/usr/local/hadoop/share/hadoop/tools/sources/hadoop-streaming-2.7.0-sources.jar
+/usr/local/hadoop/share/hadoop/tools/sources/hadoop-streaming-2.7.0-test-sources.jar
+/usr/local/pig/test/e2e/pig/lib/hadoop-0.23.0-streaming.jar
+/usr/local/pig/test/e2e/pig/lib/hadoop-streaming.jar
+# These are hadoop jars that allow to write mapreduce method in other language
+
+bigdata@bigdata:~$ hadoop jar /usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.0.jar -input registration.log -output countrycount.txt -mapper "grep payment | cut -d ' ' -f 5" -reducer "uniq -c"
+
+bigdata@bigdata:~$ nano mapper
+nano mapper
+grep payment | cut -d ' ' -f 5
+
+bigdata@bigdata:~$ nano reducer
+nano reducer
+uniq -c
+
+bigdata@bigdata:~$ hadoop jar /usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.0.jar -fs local -jt local -input registration.log -output countrycount.txt -mapper mapper -reducer reducer -file mapper -file reducer
+# save the output file locally
+
+bigdata@bigdata:~$ hadoop jar /usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.0.jar -fs local -jt local -input registration.log -output countrycount10.txt -numReduceTasks 10 -mapper mapper -reducer reducer -file mapper -file reducer
+
+bigdata@bigdata:~/countrycount10.txt$ ls -l
+total 20
+-rw-r--r-- 1 bigdata bigdata  0 jan   19 10:16 part-00000
+-rw-r--r-- 1 bigdata bigdata  0 jan   19 10:16 part-00001
+-rw-r--r-- 1 bigdata bigdata 12 jan   19 10:16 part-00002
+-rw-r--r-- 1 bigdata bigdata 12 jan   19 10:16 part-00003
+-rw-r--r-- 1 bigdata bigdata  0 jan   19 10:16 part-00004
+-rw-r--r-- 1 bigdata bigdata 12 jan   19 10:16 part-00005
+-rw-r--r-- 1 bigdata bigdata  0 jan   19 10:16 part-00006
+-rw-r--r-- 1 bigdata bigdata  0 jan   19 10:16 part-00007
+-rw-r--r-- 1 bigdata bigdata 24 jan   19 10:16 part-00008
+-rw-r--r-- 1 bigdata bigdata 12 jan   19 10:16 part-00009
+-rw-r--r-- 1 bigdata bigdata  0 jan   19 10:16 `_SUCCESS`
+
+bigdata@bigdata:~/countrycount10.txt$ cat *
+   1858 IN
+    934 FR
+   1804 NL
+   1814 DE
+    859 HU
+   1834 US
+
+bigdata@bigdata:~$ hadoop jar /usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.0.jar -fs local -jt local -input registration.log -output countrycount.txt -mapper mapper -reducer reducer -file mapper -file reducer
+# save the output file locally
+
+Exercise-2: Write a MapReduce method in Hadoop to obtain total counts for sources of registration
+
+bigdata@bigdata:~$ nano mapper
+   nano mapper2
+   grep registration | cut -d ' ' -f 5
+
+bigdata@bigdata:~$ nano reducer
+   nano reducer2
+   uniq -c
+
+bigdata@bigdata:~$ hadoop jar /usr/local/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.0.jar -fs local -jt local -input registration.log -output sources10.txt -numReduceTasks 10 -mapper mapper2 -reducer reducer2 -file mapper2 -file reducer2
+
+bigdata@bigdata:~$ cd sources10.txt/
+bigdata@bigdata:~/sources10.txt$ ls
+part-00000  part-00001  part-00002  part-00003  part-00004  part-00005  part-00006  part-00007  part-00008  part-00009  `_SUCCESS`
+
+bigdata@bigdata:~/sources10.txt$ ls -l
+   total 16
+   -rw-r--r-- 1 bigdata bigdata 17 jan   19 10:45 part-00000
+   -rw-r--r-- 1 bigdata bigdata 14 jan   19 10:45 part-00001
+   -rw-r--r-- 1 bigdata bigdata  0 jan   19 10:45 part-00002
+   -rw-r--r-- 1 bigdata bigdata  0 jan   19 10:45 part-00003
+   -rw-r--r-- 1 bigdata bigdata  0 jan   19 10:45 part-00004
+   -rw-r--r-- 1 bigdata bigdata  0 jan   19 10:45 part-00005
+   -rw-r--r-- 1 bigdata bigdata 13 jan   19 10:45 part-00006
+   -rw-r--r-- 1 bigdata bigdata  0 jan   19 10:45 part-00007
+   -rw-r--r-- 1 bigdata bigdata  0 jan   19 10:45 part-00008
+   -rw-r--r-- 1 bigdata bigdata 17 jan   19 10:45 part-00009
+   -rw-r--r-- 1 bigdata bigdata  0 jan   19 10:45 `_SUCCESS`
+
+bigdata@bigdata:~/sources10.txt$ cat *
+     54537 organic
+      9004 blog
+     18256 sem
+      9100 display
